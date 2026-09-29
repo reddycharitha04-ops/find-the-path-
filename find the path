@@ -1,0 +1,144 @@
+import sys
+import heapq
+
+input = sys.stdin.readline
+
+n, m = map(int, input().split())
+
+grid = []
+for _ in range(n):
+    grid.append(list(map(int, input().split())))
+
+q = int(input())
+
+queries = []
+for _ in range(q):
+    r1, c1, r2, c2 = map(int, input().split())
+    queries.append((r1, c1, r2, c2))
+
+INF = 10**18
+answer = [INF] * q
+
+
+def dijkstra(L, R, start_row, mid):
+    width = R - L + 1
+
+    dist = [[INF] * width for _ in range(n)]
+
+    start_col = mid - L
+
+    dist[start_row][start_col] = grid[start_row][mid]
+
+    pq = []
+    heapq.heappush(
+        pq,
+        (grid[start_row][mid], start_row, mid)
+    )
+
+    while pq:
+        current_dist, r, c = heapq.heappop(pq)
+
+        if current_dist != dist[r][c - L]:
+            continue
+
+        # Up
+        nr = r - 1
+        nc = c
+
+        if nr >= 0:
+            new_dist = current_dist + grid[nr][nc]
+
+            if new_dist < dist[nr][nc - L]:
+                dist[nr][nc - L] = new_dist
+                heapq.heappush(pq, (new_dist, nr, nc))
+
+        # Down
+        nr = r + 1
+        nc = c
+
+        if nr < n:
+            new_dist = current_dist + grid[nr][nc]
+
+            if new_dist < dist[nr][nc - L]:
+                dist[nr][nc - L] = new_dist
+                heapq.heappush(pq, (new_dist, nr, nc))
+
+        # Left
+        nr = r
+        nc = c - 1
+
+        if nc >= L:
+            new_dist = current_dist + grid[nr][nc]
+
+            if new_dist < dist[nr][nc - L]:
+                dist[nr][nc - L] = new_dist
+                heapq.heappush(pq, (new_dist, nr, nc))
+
+        # Right
+        nr = r
+        nc = c + 1
+
+        if nc <= R:
+            new_dist = current_dist + grid[nr][nc]
+
+            if new_dist < dist[nr][nc - L]:
+                dist[nr][nc - L] = new_dist
+                heapq.heappush(pq, (new_dist, nr, nc))
+
+    return dist
+
+
+def solve(L, R, query_list):
+
+    if not query_list:
+        return
+
+    mid = (L + R) // 2
+
+    all_distances = []
+
+    for row in range(n):
+        d = dijkstra(L, R, row, mid)
+        all_distances.append(d)
+
+    for qi in query_list:
+
+        r1, c1, r2, c2 = queries[qi]
+
+        for row in range(n):
+
+            d1 = all_distances[row][r1][c1 - L]
+            d2 = all_distances[row][r2][c2 - L]
+
+            value = d1 + d2 - grid[row][mid]
+
+            if value < answer[qi]:
+                answer[qi] = value
+
+    if L == R:
+        return
+
+    left_queries = []
+    right_queries = []
+
+    for qi in query_list:
+
+        r1, c1, r2, c2 = queries[qi]
+
+        if c1 < mid and c2 < mid:
+            left_queries.append(qi)
+
+        elif c1 > mid and c2 > mid:
+            right_queries.append(qi)
+
+    if L <= mid - 1:
+        solve(L, mid - 1, left_queries)
+
+    if mid + 1 <= R:
+        solve(mid + 1, R, right_queries)
+
+
+solve(0, m - 1, list(range(q)))
+
+for value in answer:
+    print(value)
